@@ -1,0 +1,38 @@
+{
+	"name": "C++/CUDA",
+	"image": "mcr.microsoft.com/devcontainers/cpp:1-ubuntu-20.04",
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	"features": {
+		"ghcr.io/devcontainers/features/nvidia-cuda:1": {
+			"cudaVersion": "11.8",
+			"cudnnVersion": "8.7.0.84",
+			"installCudnn": true,
+			"installCudnnDev": true,
+			"installNvtx": false,
+			"installToolkit": true
+		},
+		"ghcr.io/devcontainers/features/common-utils:2": {
+			"configureZshAsDefaultShell": true
+		}
+	},
+	"hostRequirements": {
+		"gpu": "optional"
+	},
+	"capAdd": [
+		"SYS_PTRACE"
+	],
+	// Configure tool-specific properties.
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-vscode-remote.remote-containers",
+				"mhutchie.git-graph",
+				"ms-vscode.cpptools",
+				"ms-vscode.cpptools-extension-pack",
+				"ms-vscode.makefile-tools",
+				"ms-vscode.cmake-tools",
+				"vscodevim.vim"
+			]
+		}
+	}
+}
