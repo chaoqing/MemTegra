@@ -15,6 +15,10 @@
 			"configureZshAsDefaultShell": true
 		}
 	},
+	"containerEnv": {
+		        "PATH": "/usr/local/cuda/bin:${PATH}"
+	},
+	"postCreateCommand": "nvcc --version",
 	"hostRequirements": {
 		"gpu": "optional"
 	},
