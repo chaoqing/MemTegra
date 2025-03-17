@@ -21,10 +21,10 @@ jobs:
         with:
           cmake-version: '3.19.0'
 
-      - name: Install CUDA
+      - name: Install Gtest
         run: |
           sudo apt-get update
-          sudo apt-get install -y cuda
+          sudo apt-get install -y libgtest-dev
 
       - name: Configure CMake
         run: |

@@ -1,11 +1,12 @@
-#include "MemTegra/MemTegra.h"
 #include <iostream>
+
+#include "MemTegra/MemTegra.h"
 
 int main() {
     MemTegra memTegra;
 
     // Allocate aligned memory
-    void* ptr = memTegra.mallocAligned(128);
+    void *ptr = memTegra.mallocAligned(128);
     if (ptr) {
         std::cout << "Memory allocated at address: " << ptr << std::endl;
     } else {
