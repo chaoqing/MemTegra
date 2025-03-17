@@ -5,6 +5,25 @@
 #include <type_traits>
 
 namespace MT {
+    namespace MemoryTag {
+
+        enum class ENUM_HOST {};
+        enum class ENUM_DEVICE {};
+
+        template <typename Tag> struct support_reference { constexpr static bool value = true; };
+
+        template <> struct support_reference<ENUM_DEVICE> { constexpr static bool value = false; };
+
+    };  // namespace MemoryTag
+
+    template <typename T, typename Tag> class strong_pointer;
+    using int_hp  = strong_pointer<int, MemoryTag::ENUM_HOST>;
+    using int_dp  = strong_pointer<int, MemoryTag::ENUM_DEVICE>;
+    using void_hp = strong_pointer<void, MemoryTag::ENUM_HOST>;
+    using void_dp = strong_pointer<void, MemoryTag::ENUM_DEVICE>;
+
+    namespace internal {}
+
 
     template <typename T, typename Tag> class strong_pointer {
     public:
@@ -18,8 +37,16 @@ namespace MT {
         T* get() const { return ptr_; }
 
         // Dereference operators
-        T& operator*() const { return *ptr_; }
-        T* operator->() const { return ptr_; }
+        T& operator*() const {
+            static_assert(MemoryTag::support_reference<Tag>::value,
+                          "Memory do not support reference");
+            return *ptr_;
+        }
+        T* operator->() const {
+            static_assert(MemoryTag::support_reference<Tag>::value,
+                          "Memory do not support reference");
+            return ptr_;
+        }
 
         // Indexing operator
         T& operator[](std::size_t index) const { return ptr_[index]; }
@@ -61,16 +88,6 @@ namespace MT {
     private:
         T* ptr_;
     };
-
-    namespace MemoryTag {
-
-        enum class ENUM_HOST {};
-        enum class ENUM_DEVICE {};
-
-    };  // namespace MemoryTag
-
-    using int_hp = strong_pointer<int, MemoryTag::ENUM_HOST>;
-    using int_dp = strong_pointer<int, MemoryTag::ENUM_DEVICE>;
 
 };  // namespace MT
 

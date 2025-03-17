@@ -86,4 +86,8 @@ TEST(StrongPointerTest, TypeSafety) {
     // Invalid operations (should not compile, so we can't test them directly)
     // Uncommenting the following lines should cause compile-time errors:
     // auto invalid = a - b;
+
+    // Device memory do not support reference
+    // *b = 0;
+    // *a = *b;
 }
