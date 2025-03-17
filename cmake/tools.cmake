@@ -73,9 +73,8 @@ if(USE_CCACHE)
   CPMAddPackage("gh:TheLartians/Ccache.cmake@1.2.4")
 endif()
 
-# Function to collect all source and header files for a target
+# Function to collect all source and referenced header files for a target
 function(collect_files target output_dir)
-    # TODO: Retrieve all source info
     get_target_property(SOURCES ${target} SOURCES)
     if(NOT SOURCES)
         message(WARNING "No sources found for target: ${target}")
@@ -83,7 +82,28 @@ function(collect_files target output_dir)
     endif()
 
     file(APPEND "${output_dir}/compile_files.list" "# File list for target: ${target}\n")
-    foreach(FILE ${SOURCES})
-        file(APPEND "${output_dir}/compile_files.list" "${FILE}\n")
+    foreach(SOURCE_FILE ${SOURCES})
+        file(APPEND "${output_dir}/compile_files.list" "${SOURCE_FILE}\n")
+
+        # TODO: Fix the logic here
+        continue()
+
+        # Use CMake's dependency scanner to find headers included by the source file
+        get_property(INCLUDE_DIRS TARGET ${target} PROPERTY INCLUDE_DIRECTORIES)
+        set(HEADER_FILES)
+        execute_process(
+            COMMAND ${CMAKE_CXX_COMPILER} -M -I${INCLUDE_DIRS} ${SOURCE_FILE}
+            OUTPUT_VARIABLE DEPENDENCIES
+            ERROR_QUIET
+        )
+
+        if(NOT DEPENDENCIES)
+            continue()
+        endif()
+
+        string(REGEX MATCHALL "[^ ]+\\.h(pp)?" HEADER_FILES ${DEPENDENCIES})
+        foreach(HEADER_FILE ${HEADER_FILES})
+            file(APPEND "${output_dir}/compile_files.list" "${HEADER_FILE}\n")
+        endforeach()
     endforeach()
 endfunction()

@@ -2,10 +2,12 @@
 
 #include "MemTegra/strong_pointer.hpp"
 
+using namespace MT;
+
 // Test basic functionality
 TEST(StrongPointerTest, BasicFunctionality) {
-    int                            hostArray[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-    strong_pointer<int, ENUM_HOST> a(hostArray);
+    int    hostArray[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    int_hp a(hostArray);
 
     // Test dereference
     EXPECT_EQ(*a, 0);
@@ -20,8 +22,8 @@ TEST(StrongPointerTest, BasicFunctionality) {
 
 // Test arithmetic operations
 TEST(StrongPointerTest, ArithmeticOperations) {
-    int                            hostArray[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-    strong_pointer<int, ENUM_HOST> a(hostArray);
+    int    hostArray[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    int_hp a(hostArray);
 
     // Test addition
     auto a2 = a + 3;
@@ -42,9 +44,9 @@ TEST(StrongPointerTest, ArithmeticOperations) {
 
 // Test comparison operations
 TEST(StrongPointerTest, ComparisonOperations) {
-    int                            hostArray[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-    strong_pointer<int, ENUM_HOST> a(hostArray);
-    strong_pointer<int, ENUM_HOST> b(hostArray + 1);
+    int    hostArray[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    int_hp a(hostArray);
+    int_hp b(hostArray + 1);
 
     // Test equality
     EXPECT_FALSE(a == b);
@@ -72,8 +74,8 @@ TEST(StrongPointerTest, TypeSafety) {
     int hostArray[10];
     int deviceArray[10];
 
-    strong_pointer<int, ENUM_HOST>   a(hostArray);
-    strong_pointer<int, ENUM_DEVICE> b(deviceArray);
+    int_hp a(hostArray);
+    int_dp b(deviceArray);
 
     // Valid operations
     auto a2   = a + 1;

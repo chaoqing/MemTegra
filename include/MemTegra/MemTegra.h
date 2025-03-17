@@ -9,7 +9,7 @@
 class MemTegra {
 public:
     static void* mallocAligned(std::size_t size);
-    static void freeAligned(void* ptr);
+    static void  freeAligned(void* ptr);
 };
 
-#endif // MEMTEGRA_H
+#endif  // MEMTEGRA_H

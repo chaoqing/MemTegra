@@ -20,6 +20,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_library(${PROJECT_NAME}
     src/MemTegra.cpp
     src/Utils.cpp
+    include/MemTegra/MemTegra.h
+    include/MemTegra/strong_pointer.hpp
+    include/MemTegra/Utils.h
 )
 
 target_include_directories(

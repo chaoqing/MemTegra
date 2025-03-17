@@ -11,4 +11,4 @@ bool isAligned64(void* ptr);
 // Function to align a size to the next 64-byte boundary
 std::size_t alignTo64(std::size_t size);
 
-#endif // MEMTEGRA_UTILS_H
+#endif  // MEMTEGRA_UTILS_H
