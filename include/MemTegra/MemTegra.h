@@ -14,7 +14,12 @@ namespace MT {
     };  // namespace MemoryTag
 
     namespace internal {
-        template <typename Tag> struct support_reference { constexpr static bool value = true; };
+        template <typename T, typename Tag> struct support_reference {
+            constexpr static bool value = true;
+        };
+        template <typename Tag> struct support_reference<void, Tag> {
+            constexpr static bool value = false;
+        };
     };  // namespace internal
 };      // namespace MT
 

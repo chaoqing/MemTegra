@@ -1,5 +1,8 @@
 #include <cuda_runtime.h>
 
+#include <stdexcept>
+#include <string>
+
 #include "MemTegra/device_memory.h"
 
 namespace MT {

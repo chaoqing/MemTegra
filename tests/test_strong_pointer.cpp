@@ -21,6 +21,17 @@ TEST(StrongPointerTest, BasicFunctionality) {
 }
 
 // Test arithmetic operations
+TEST(StrongPointerTest, VoidPointer) {
+    int_hp a;
+    void*  p = a.get();
+
+    void_hp b(p);
+    void_hp c = a;
+    a         = static_cast<int_hp>(c);
+    EXPECT_EQ(b, nullptr);
+}
+
+// Test arithmetic operations
 TEST(StrongPointerTest, ArithmeticOperations) {
     int    hostArray[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     int_hp a(hostArray);

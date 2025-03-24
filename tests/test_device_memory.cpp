@@ -1,9 +1,11 @@
-#include <gtest/gtest.h>
+#if ENABLE_CUDA
+#    include <gtest/gtest.h>
 
-#include <iostream>
-#include <vector>
+#    include <iostream>
+#    include <vector>
 
-#include "MemTegra/device_memory.h"
+#    include "MemTegra/device_memory.h"
+#    include "MemTegra/strong_pointer.hpp"
 using namespace MT;
 
 class DeviceMemTest : public ::testing::Test {
@@ -32,3 +34,17 @@ TEST_F(DeviceMemTest, AllocateMultipleDeviceMemory) {
 }
 
 TEST_F(DeviceMemTest, FreeNullPointer) { EXPECT_NO_THROW(memTegra.free(nullptr)); }
+
+TEST_F(DeviceMemTest, TypeSafety) {
+    int   *p = static_cast<int *>(memTegra.malloc(128));
+    int_dp a(p);
+
+    // Valid operations
+    auto a2   = a + 1;
+    auto diff = a2 - a;
+    EXPECT_EQ(diff, 1);
+
+    // Device memory do not support reference
+    //*a = 0;
+}
+#endif

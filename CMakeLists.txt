@@ -20,13 +20,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_program(CUDA_COMPILER nvcc)
 if(CUDA_COMPILER)
   set(ENABLE_CUDA_DEFAULT 1)
-  set(DEFAULT_LIBRARY_TYPE SHARED) # Use dynamic library when CUDA is enabled
 else()
   set(ENABLE_CUDA_DEFAULT 0)
-  set(DEFAULT_LIBRARY_TYPE STATIC) # Use static library otherwise
 endif()
 
 option(ENABLE_CUDA "Enable CUDA support" ${ENABLE_CUDA_DEFAULT})
+
+if(ENABLE_CUDA)
+  set(DEFAULT_LIBRARY_TYPE SHARED) # Use dynamic library when CUDA is enabled
+else()
+  set(DEFAULT_LIBRARY_TYPE STATIC) # Use static library otherwise
+endif()
 
 # Add the source files for the MemTegra library
 add_library(${PROJECT_NAME} ${DEFAULT_LIBRARY_TYPE}

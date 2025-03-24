@@ -10,7 +10,7 @@ namespace MT {
         enum class ENUM_DEVICE {};
     };  // namespace MemoryTag
     namespace internal {
-        template <> struct support_reference<MemoryTag::ENUM_DEVICE> {
+        template <typename T> struct support_reference<T, MemoryTag::ENUM_DEVICE> {
             constexpr static bool value = false;
         };
 
