@@ -53,6 +53,10 @@ ifneq ($(COVERAGE),)
   CMAKE_OPTIONS += -DENABLE_TEST_COVERAGE=$(COVERAGE)
 endif
 
+ifeq ($(FORCE_CUDA_OFF),1)
+  CMAKE_OPTIONS += -DENABLE_CUDA=off
+endif
+
 EMPTY :=
 ifneq ($(SANITIZER),)
   SANITIZER_OPTIONS := Address Memory MemoryWithOrigins Undefined Thread Leak
@@ -97,7 +101,7 @@ build-all: build build-sample build-test
 format: format-cpp
 
 .PHONY: format-cpp
-format-cpp:
+format-cpp: source-all
 	@while IFS= read -r file; do \
         test -z "$${file%%#*}" || clang-format -i -style=file "$$file"; \
     done < $(BUILD_DIR)/compile_files.list

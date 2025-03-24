@@ -39,6 +39,7 @@ __pycache__/
 
 # IDE
 .idea/
+.vscode/settings.json
 
 # Generated
 build/

@@ -75,7 +75,9 @@ TEST(StrongPointerTest, TypeSafety) {
     int deviceArray[10];
 
     int_hp a(hostArray);
-    int_dp b(deviceArray);
+    using int_hp_64  = strong_pointer<int, MemoryTag::ENUM_ALIGNED_64>;
+    using void_hp_64 = strong_pointer<void, MemoryTag::ENUM_ALIGNED_64>;
+    int_hp_64 b(deviceArray);
 
     // Valid operations
     auto a2   = a + 1;

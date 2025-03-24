@@ -3,10 +3,10 @@
 #include "MemTegra/MemTegra.h"
 
 int main() {
-    MemTegra memTegra;
+    MT::RawAllocator<MT::MemoryTag::ENUM_ALIGNED_64> memTegra;
 
     // Allocate aligned memory
-    void *ptr = memTegra.mallocAligned(128);
+    void *ptr = memTegra.malloc(128);
     if (ptr) {
         std::cout << "Memory allocated at address: " << ptr << std::endl;
     } else {
@@ -15,7 +15,7 @@ int main() {
     }
 
     // Free the allocated memory
-    memTegra.freeAligned(ptr);
+    memTegra.free(ptr);
     std::cout << "Memory freed successfully." << std::endl;
 
     return 0;
