@@ -1,9 +1,9 @@
 #ifndef MEMTEGRA_DEVICE_ALLOCATOR_H
 #define MEMTEGRA_DEVICE_ALLOCATOR_H
 
-#include "./MemTegra.h"
-#include "./strong_pointer.hpp"
+#ifdef ENABLE_CUDA
 
+#    include "./MemTegra.h"
 namespace MT {
 
     namespace MemoryTag {
@@ -30,4 +30,5 @@ namespace MT {
     using void_dp = strong_pointer<void, MemoryTag::ENUM_DEVICE>;
 };  // namespace MT
 
+#endif
 #endif  // MEMTEGRA_DEVICE_ALLOCATOR_H

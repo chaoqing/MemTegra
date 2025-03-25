@@ -5,9 +5,18 @@
 #include <cstring>
 #include <type_traits>
 
-#include "./MemTegra.h"
+#include "./memory_tags.h"
 
 namespace MT {
+    namespace internal {
+        template <typename T, typename Tag> struct support_reference {
+            constexpr static bool value = true;
+        };
+        template <typename Tag> struct support_reference<void, Tag> {
+            constexpr static bool value = false;
+        };
+    };  // namespace internal
+        //
     template <typename T, typename Tag> class strong_pointer {
         // dereference_type used here to bypass compiler error for void type
         using dereference_type = typename std::conditional<std::is_void_v<T>, int, T>::type;
@@ -23,6 +32,7 @@ namespace MT {
 
         // Conversion operator to strong_pointer<void, Tag>
         operator strong_pointer<void, Tag>() const { return strong_pointer<void, Tag>(ptr_); }
+        operator T*() const { return get(); }
 
 
         // Access underlying pointer
@@ -90,5 +100,40 @@ namespace MT {
 
     using int_hp  = strong_pointer<int, MemoryTag::ENUM_HOST>;
     using void_hp = strong_pointer<void, MemoryTag::ENUM_HOST>;
-};      // namespace MT
+};  // namespace MT
+
+
+    // namespace MT {
+    //// Memory set operation for strong pointers
+    // template <typename Tag>
+    // strong_pointer<void, Tag> memset(strong_pointer<void, Tag>& ptr, int ch, std::size_t count) {
+    // if (!ptr) {
+    // throw std::runtime_error("Null strong pointer.");
+    //}
+    // std::memset(ptr.get(), ch, count);
+    // return ptr;
+    //}
+
+    //// Memory copy operation for strong pointers
+    // template <typename T, typename Tag1, typename Tag2>
+    // void memcpy(const strong_pointer<T, Tag1>& src, strong_pointer<T, Tag2>& dest) {
+    // if (!src) {
+    // throw std::runtime_error("Source strong pointer is null.");
+    //}
+    // if (!dest) {
+    // throw std::runtime_error("Destination strong pointer is null.");
+    //}
+
+    // if constexpr (std::is_same<Tag1, MemoryTag::ENUM_HOST>::value && std::is_same<Tag2,
+    // MemoryTag::ENUM_HOST>::value) {
+    // std::memcpy(dest.get(), src.get(), sizeof(T));
+    //} else if constexpr (std::is_same<Tag1, MemoryTag::ENUM_HOST>::value &&
+    // std::is_same<Tag2, MemoryTag::ENUM_DEVICE>::value) {
+    // cudaMemcpy(dest.get(), src.get(), sizeof(T), cudaMemcpyHostToDevice);
+    //} else {
+    // throw std::runtime_error("Unsupported strong pointer types for copy operation.");
+    //}
+    //}
+    //};  // namespace MT
+
 #endif  // STRONG_POINTER_H

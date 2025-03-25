@@ -39,6 +39,8 @@ add_library(${PROJECT_NAME} ${DEFAULT_LIBRARY_TYPE}
     include/MemTegra/MemTegra.h
     include/MemTegra/strong_pointer.hpp
     include/MemTegra/Utils.h
+    include/MemTegra/allocator.hpp
+    include/MemTegra/memory_tags.h
 )
 
 target_include_directories(

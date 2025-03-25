@@ -5,7 +5,6 @@
 #    include <vector>
 
 #    include "MemTegra/device_memory.h"
-#    include "MemTegra/strong_pointer.hpp"
 using namespace MT;
 
 class DeviceMemTest : public ::testing::Test {
