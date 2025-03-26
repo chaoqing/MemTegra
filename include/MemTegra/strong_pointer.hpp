@@ -26,12 +26,26 @@ namespace MT {
         using tag_type   = Tag;
 
         // Constructor
+        strong_pointer(const strong_pointer&)            = default;
+        strong_pointer(strong_pointer&&)                 = default;
+        strong_pointer& operator=(const strong_pointer&) = default;
+        strong_pointer& operator=(strong_pointer&&)      = default;
+
         explicit strong_pointer(T* ptr = nullptr) : ptr_(ptr) {}
+
+        // void*-like strong_pointer must be explicit static_cast to T*-like strong_pointer
+        // use SFINAE with std::enable_if(on C++17) or requires(on C++20) to bypass avoid the
+        // redeclaration error
+        template <typename U = T, typename = std::enable_if_t<!std::is_same_v<U, void>>>
         explicit strong_pointer(const strong_pointer<void, Tag>& ptr)
             : ptr_(static_cast<T*>(ptr.get())) {}
 
-        // Conversion operator to strong_pointer<void, Tag>
-        operator strong_pointer<void, Tag>() const { return strong_pointer<void, Tag>(ptr_); }
+        // Automatically conversion operator to strong_pointer<void, Tag> if T!=void
+        template <typename U = T, typename = std::enable_if_t<!std::is_same_v<U, void>>>
+        operator strong_pointer<void, Tag>() const {
+            return strong_pointer<void, Tag>(ptr_);
+        }
+
         operator T*() const { return get(); }
 
 
@@ -102,38 +116,5 @@ namespace MT {
     using void_hp = strong_pointer<void, MemoryTag::ENUM_HOST>;
 };  // namespace MT
 
-
-    // namespace MT {
-    //// Memory set operation for strong pointers
-    // template <typename Tag>
-    // strong_pointer<void, Tag> memset(strong_pointer<void, Tag>& ptr, int ch, std::size_t count) {
-    // if (!ptr) {
-    // throw std::runtime_error("Null strong pointer.");
-    //}
-    // std::memset(ptr.get(), ch, count);
-    // return ptr;
-    //}
-
-    //// Memory copy operation for strong pointers
-    // template <typename T, typename Tag1, typename Tag2>
-    // void memcpy(const strong_pointer<T, Tag1>& src, strong_pointer<T, Tag2>& dest) {
-    // if (!src) {
-    // throw std::runtime_error("Source strong pointer is null.");
-    //}
-    // if (!dest) {
-    // throw std::runtime_error("Destination strong pointer is null.");
-    //}
-
-    // if constexpr (std::is_same<Tag1, MemoryTag::ENUM_HOST>::value && std::is_same<Tag2,
-    // MemoryTag::ENUM_HOST>::value) {
-    // std::memcpy(dest.get(), src.get(), sizeof(T));
-    //} else if constexpr (std::is_same<Tag1, MemoryTag::ENUM_HOST>::value &&
-    // std::is_same<Tag2, MemoryTag::ENUM_DEVICE>::value) {
-    // cudaMemcpy(dest.get(), src.get(), sizeof(T), cudaMemcpyHostToDevice);
-    //} else {
-    // throw std::runtime_error("Unsupported strong pointer types for copy operation.");
-    //}
-    //}
-    //};  // namespace MT
 
 #endif  // STRONG_POINTER_H

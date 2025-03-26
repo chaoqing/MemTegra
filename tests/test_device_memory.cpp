@@ -45,5 +45,18 @@ TEST_F(DeviceMemTest, TypeSafety) {
 
     // Device memory do not support reference
     //*a = 0;
+    memTegra.free(p);
+}
+
+TEST_F(DeviceMemTest, MemoryOps) {
+    constexpr size_t bytes = 100 * sizeof(int);
+    void_hp          host_p{static_cast<int *>(RawAllocator<MemoryTag::ENUM_HOST>::malloc(bytes))};
+    void_dp          device_p{static_cast<int *>(memTegra.malloc(bytes))};
+
+    //MT::memset<typename decltype(device_p)::tag_type>{}(device_p, 1, bytes);
+
+
+    memTegra.free(device_p.get());
+    RawAllocator<MemoryTag::ENUM_HOST>::free(host_p.get());
 }
 #endif
