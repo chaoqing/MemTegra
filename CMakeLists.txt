@@ -36,7 +36,7 @@ endif()
 add_library(${PROJECT_NAME} ${DEFAULT_LIBRARY_TYPE}
     src/MemTegra.cpp
     src/Utils.cpp
-    src/device_memory.cpp
+    src/device_memory.cu
     include/MemTegra/MemTegra.h
     include/MemTegra/strong_pointer.hpp
     include/MemTegra/Utils.h
@@ -63,11 +63,11 @@ if(ENABLE_CUDA)
 
   set_property(TARGET ${PROJECT_NAME} PROPERTY CUDA_ARCHITECTURES ${CMAKE_CUDA_ARCHITECTURES})
 
-  target_sources(${PROJECT_NAME} PRIVATE
+  #target_sources(${PROJECT_NAME} PRIVATE
 	  #src/device_memory.cu
-  )
-  set(CU_SOURCE_FILES src/device_memory.cpp) 
-  set_source_files_properties(${CU_SOURCE_FILES} PROPERTIES LANGUAGE CUDA)
+  #)
+  #set(CU_SOURCE_FILES src/device_memory.cpp) 
+  #set_source_files_properties(${CU_SOURCE_FILES} PROPERTIES LANGUAGE CUDA)
 
   target_compile_definitions(${PROJECT_NAME} PUBLIC ENABLE_CUDA=1)
   message(STATUS "CUDA support enabled with architectures: ${CMAKE_CUDA_ARCHITECTURES}")
@@ -78,6 +78,6 @@ else()
   list(FILTER CU_SOURCE_FILES INCLUDE REGEX "\\.cu$")
   if(CU_SOURCE_FILES)
 	  set_source_files_properties(${CU_SOURCE_FILES} PROPERTIES LANGUAGE CXX)
-	  # TODO: need to fix the c++ compiler error on cu files
+	  set_source_files_properties(${CU_SOURCE_FILES} PROPERTIES COMPILE_FLAGS "-x c++")
   endif()
 endif()

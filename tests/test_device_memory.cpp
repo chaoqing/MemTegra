@@ -1,10 +1,9 @@
-#if ENABLE_CUDA
-#    include <gtest/gtest.h>
+#include <gtest/gtest.h>
 
-#    include <iostream>
-#    include <vector>
+#include <iostream>
+#include <vector>
 
-#    include "MemTegra/device_memory.h"
+#include "MemTegra/device_memory.h"
 using namespace MT;
 
 class DeviceMemTest : public ::testing::Test {
@@ -62,4 +61,3 @@ TEST_F(DeviceMemTest, MemoryOps) {
     memTegra.free(device_p.get());
     RawAllocator<MemoryTag::ENUM_HOST>::free(host_p.get());
 }
-#endif
