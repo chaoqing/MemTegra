@@ -1,15 +1,15 @@
 #ifndef MEMTEGRA_DEVICE_ALLOCATOR_H
 #define MEMTEGRA_DEVICE_ALLOCATOR_H
 
-#ifdef ENABLE_CUDA
 
-#    include "./MemTegra.h"
-#    include "./memory_ops.hpp"
+#include "./MemTegra.h"
+#include "./strong_pointer.hpp"
 namespace MT {
 
     namespace MemoryTag {
         enum class ENUM_DEVICE {};
     };  // namespace MemoryTag
+
     namespace internal {
         template <typename T> struct support_reference<T, MemoryTag::ENUM_DEVICE> {
             constexpr static bool value = false;
@@ -36,7 +36,7 @@ namespace MT {
     namespace internal {
         using cudaStream_t = void*;
 
-        void* cudaMemset(void* dest, int ch, size_t n, cudaStream_t stream = nullptr);
+        void* cuda_memset(void* dest, int ch, size_t n, cudaStream_t stream = nullptr);
 
         enum class cudaMemcpyKind {
             cudaMemcpyHostToDevice   = 1, /**< Host   -> Device */
@@ -44,21 +44,30 @@ namespace MT {
             cudaMemcpyDeviceToDevice = 3, /**< Device -> Device */
         };
 
-        void* cudaMemcpy(void* dest, const void* src, size_t n, cudaMemcpyKind kind,
-                         cudaStream_t stream = nullptr);
+        void* cuda_memcpy(void* dest, const void* src, size_t n, cudaMemcpyKind kind,
+                          cudaStream_t stream = nullptr);
     };  // namespace internal
 
     // Memory set operation for strong pointers
-    template <> class memset<MemoryTag::ENUM_DEVICE> {
-        using pointer = strong_pointer<void, MemoryTag::ENUM_DEVICE>;
-
+    class memset {
     public:
         memset(internal::cudaStream_t stream = nullptr) : stream_(stream) {}
-        pointer operator()(pointer& ptr, int ch, std::size_t count) const {
+        template <typename T, typename Tag>
+        strong_pointer<T, Tag> operator()(strong_pointer<T, Tag>& ptr, int ch,
+                                          std::size_t count) const {
             if (!ptr) {
                 throw std::runtime_error("Null strong pointer.");
             }
-            internal::cudaMemset(ptr.get(), ch, count, stream_);
+            std::memset(ptr.get(), ch, count);
+            return ptr;
+        }
+
+        template <typename T> strong_pointer<T, MemoryTag::ENUM_DEVICE> operator()(
+            strong_pointer<T, MemoryTag::ENUM_DEVICE>& ptr, int ch, std::size_t count) const {
+            if (!ptr) {
+                throw std::runtime_error("Null strong pointer.");
+            }
+            internal::cuda_memset(ptr.get(), ch, count, stream_);
             return ptr;
         }
 
@@ -67,12 +76,12 @@ namespace MT {
     };
 
     // Memory copy operation for strong pointers
-    template <typename SrcTag> class memcpy<MemoryTag::ENUM_DEVICE, SrcTag> {
+    class memcpy {
     public:
         memcpy(internal::cudaStream_t stream = nullptr) : stream_(stream) {}
-        strong_pointer<void, MemoryTag::ENUM_DEVICE> operator()(
-            strong_pointer<void, MemoryTag::ENUM_DEVICE>& dest,
-            const strong_pointer<void, SrcTag>& src, size_t n) {
+        template <typename T, typename U, typename DestTag, typename SrcTag>
+        strong_pointer<T, DestTag> operator()(strong_pointer<T, DestTag>&      dest,
+                                              const strong_pointer<U, SrcTag>& src, size_t n) {
             if (!src) {
                 throw std::runtime_error("Source strong pointer is null.");
             }
@@ -80,42 +89,32 @@ namespace MT {
                 throw std::runtime_error("Destination strong pointer is null.");
             }
 
-            constexpr internal::cudaMemcpyKind kind
-                = (std::is_same_v<SrcTag, MemoryTag::ENUM_DEVICE>)
-                      ? internal::cudaMemcpyKind::cudaMemcpyDeviceToDevice
-                      : internal::cudaMemcpyKind::cudaMemcpyHostToDevice;
-
-            internal::cudaMemcpy(dest.get(), src.get(), n, kind, stream_);
-
+            if constexpr (std::is_same_v<
+                              SrcTag,
+                              MemoryTag::
+                                  ENUM_DEVICE> && std::is_same_v<DestTag, MemoryTag::ENUM_DEVICE>) {
+                internal::cuda_memcpy(dest.get(), src.get(), n,
+                                      internal::cudaMemcpyKind::cudaMemcpyDeviceToDevice, stream_);
+            } else if constexpr (
+                std::is_same_v<
+                    SrcTag,
+                    MemoryTag::ENUM_DEVICE> && !std::is_same_v<DestTag, MemoryTag::ENUM_DEVICE>) {
+                internal::cuda_memcpy(dest.get(), src.get(), n,
+                                      internal::cudaMemcpyKind::cudaMemcpyDeviceToHost, stream_);
+            } else if constexpr (
+                !std::is_same_v<
+                    SrcTag,
+                    MemoryTag::ENUM_DEVICE> && std::is_same_v<DestTag, MemoryTag::ENUM_DEVICE>) {
+                internal::cuda_memcpy(dest.get(), src.get(), n,
+                                      internal::cudaMemcpyKind::cudaMemcpyHostToDevice, stream_);
+            } else {
+                std::memcpy(dest.get(), src.get(), n);
+            }
             return dest;
         }
 
     private:
         void* stream_;
     };
-
-    template <typename DestTag> class memcpy<DestTag, MemoryTag::ENUM_DEVICE> {
-    public:
-        memcpy(internal::cudaStream_t stream = nullptr) : stream_(stream) {}
-        strong_pointer<void, DestTag> operator()(
-            strong_pointer<void, DestTag>&                      dest,
-            const strong_pointer<void, MemoryTag::ENUM_DEVICE>& src, size_t n) {
-            if (!src) {
-                throw std::runtime_error("Source strong pointer is null.");
-            }
-            if (!dest) {
-                throw std::runtime_error("Destination strong pointer is null.");
-            }
-
-            internal::cudaMemcpy(dest.get(), src.get(), n,
-                                 internal::cudaMemcpyKind::cudaMemcpyDeviceToHost, stream_);
-
-            return dest;
-        }
-
-    private:
-        void* stream_;
-    };
-};  // namespace MT
-#endif
+};      // namespace MT
 #endif  // MEMTEGRA_DEVICE_ALLOCATOR_H

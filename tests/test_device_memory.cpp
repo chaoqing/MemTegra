@@ -50,10 +50,13 @@ TEST_F(DeviceMemTest, TypeSafety) {
 
 TEST_F(DeviceMemTest, MemoryOps) {
     constexpr size_t bytes = 100 * sizeof(int);
-    void_hp          host_p{static_cast<int *>(RawAllocator<MemoryTag::ENUM_HOST>::malloc(bytes))};
+    int_hp           host_p{static_cast<int *>(RawAllocator<MemoryTag::ENUM_HOST>::malloc(bytes))};
     void_dp          device_p{static_cast<int *>(memTegra.malloc(bytes))};
 
-    //MT::memset<typename decltype(device_p)::tag_type>{}(device_p, 1, bytes);
+    MT::memset{}(device_p, 1, bytes);
+    MT::memcpy{}(host_p, device_p, bytes);
+    MT::memset{}(device_p, 1, bytes);
+    MT::memcpy{}(device_p, host_p, bytes);
 
 
     memTegra.free(device_p.get());
