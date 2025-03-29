@@ -48,15 +48,35 @@ TEST_F(DeviceMemTest, TypeSafety) {
 }
 
 TEST_F(DeviceMemTest, MemoryOps) {
-    constexpr size_t bytes = 100 * sizeof(int);
+    constexpr size_t N     = 100;
+    constexpr size_t bytes = N * sizeof(int);
     int_hp           host_p{static_cast<int *>(RawAllocator<MemoryTag::ENUM_HOST>::malloc(bytes))};
     void_dp          device_p{static_cast<int *>(memTegra.malloc(bytes))};
 
-    MT::memset{}(device_p, 1, bytes);
-    MT::memcpy{}(host_p, device_p, bytes);
-    MT::memset{}(device_p, 1, bytes);
-    MT::memcpy{}(device_p, host_p, bytes);
+    MT::memset{}(host_p, 0, bytes);
+    std::copy(host_p, host_p + N, std::ostream_iterator<int>(std::cout, " "));
+    std::cout << std::endl;
 
+    // Set first half of device_p to all 1
+    MT::memset{}(device_p, 1, bytes / 2);
+
+    // Copy first half of device_p into later half of host_p
+    MT::memcpy{}(host_p + bytes / 2, device_p, bytes / 2);
+
+    // Print all values in host_p
+    std::copy(host_p, host_p + N, std::ostream_iterator<int>(std::cout, " "));
+    std::cout << std::endl;
+
+    // Verify values in host_p
+    for (size_t i = N / 2; i < N; ++i) {
+        EXPECT_EQ(host_p[i], 0x01010101);  // Each byte is set to 1
+    }
+
+    // Generate random numbers in first half of host_p
+    std::generate(host_p, host_p + N / 2, []() { return rand(); });
+
+    // Copy first half of host_p into later half of device_p
+    MT::memcpy{}(static_cast<int_dp>(device_p) + bytes / 2, host_p, bytes / 2);
 
     memTegra.free(device_p.get());
     RawAllocator<MemoryTag::ENUM_HOST>::free(host_p.get());

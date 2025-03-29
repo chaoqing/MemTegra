@@ -4,6 +4,7 @@
 #    include <cstring>
 #endif
 
+#include <cstdlib>
 #include <stdexcept>
 #include <string>
 
@@ -25,7 +26,8 @@ namespace MT {
             }
             return ptr;
 #else
-            return std::malloc(size);
+            constexpr size_t CUDA_DEFAULT_ALIGNMENT = 256;
+            return std::aligned_alloc(size, CUDA_DEFAULT_ALIGNMENT);
 #endif
         }
 

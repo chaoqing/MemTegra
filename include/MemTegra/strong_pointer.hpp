@@ -16,105 +16,154 @@ namespace MT {
             constexpr static bool value = false;
         };
     };  // namespace internal
-        //
+
     template <typename T, typename Tag> class strong_pointer {
-        // dereference_type used here to bypass compiler error for void type
-        using dereference_type = typename std::conditional<std::is_void_v<T>, int, T>::type;
+        using dereference_type = typename std::conditional_t<std::is_void_v<T>, char, T>&;
 
     public:
-        using value_type = T;
-        using tag_type   = Tag;
+        // **Iterator Traits** //
+        using iterator_category = std::random_access_iterator_tag;
+        using value_type        = T;
+        using difference_type   = std::ptrdiff_t;
+        using pointer           = T*;
+        using reference         = std::conditional_t<std::is_void_v<T>, void, dereference_type>;
 
-        // Constructor
-        strong_pointer(const strong_pointer&)            = default;
-        strong_pointer(strong_pointer&&)                 = default;
-        strong_pointer& operator=(const strong_pointer&) = default;
-        strong_pointer& operator=(strong_pointer&&)      = default;
+        // **Constructors** //
+        strong_pointer() noexcept : ptr(nullptr) {}
 
-        explicit strong_pointer(T* ptr = nullptr) : ptr_(ptr) {}
+        // Constructor from raw pointer
+        /*explicit*/ strong_pointer(T* p) noexcept : ptr(p) {}
 
-        // void*-like strong_pointer must be explicit static_cast to T*-like strong_pointer
-        // use SFINAE with std::enable_if(on C++17) or requires(on C++20) to bypass avoid the
-        // redeclaration error
-        template <typename U = T, typename = std::enable_if_t<!std::is_same_v<U, void>>>
-        explicit strong_pointer(const strong_pointer<void, Tag>& ptr)
-            : ptr_(static_cast<T*>(ptr.get())) {}
+        // Conversion constructor from another strong_pointer with the same tag
+        template <typename U = T, typename = std::enable_if_t<std::is_convertible_v<U*, T*>>>
+        /*explicit*/ strong_pointer(const strong_pointer<U, Tag>& other) noexcept
+            : ptr(other.get()) {}
 
-        // Automatically conversion operator to strong_pointer<void, Tag> if T!=void
-        template <typename U = T, typename = std::enable_if_t<!std::is_same_v<U, void>>>
-        operator strong_pointer<void, Tag>() const {
-            return strong_pointer<void, Tag>(ptr_);
+        template <typename U = T, typename = std::enable_if_t<std::is_convertible_v<U*, T*>>>
+        /*explicit*/ strong_pointer(strong_pointer<U, Tag>&& other) noexcept : ptr(other.get()) {}
+
+        // convertible to another strong_pointer with the same tag but must be explicit
+        template <typename U = T, typename = std::enable_if_t<!std::is_convertible_v<T*, U*>>>
+        explicit operator strong_pointer<U, Tag>() const noexcept {
+            return strong_pointer<U, Tag>(static_cast<U*>(ptr));
         }
 
-        operator T*() const { return get(); }
+        // **Accessors** //
+        T* get() const noexcept { return ptr; }
 
-
-        // Access underlying pointer
-        T* get() const { return ptr_; }
-
-        // Dereference operators
-        dereference_type& operator*() const {
-            static_assert(internal::support_reference<T, Tag>::value,
+        template <typename U = T>
+        std::enable_if_t<!std::is_void_v<U>, U>& operator*() const noexcept {
+            static_assert(internal::support_reference<U, Tag>::value,
                           "Memory do not support reference");
-            return *static_cast<dereference_type*>(ptr_);
+            return *ptr;
         }
-        dereference_type& operator->() const {
-            static_assert(internal::support_reference<T, Tag>::value,
+
+        template <typename U = T>
+        std::enable_if_t<!std::is_void_v<U>, U>* operator->() const noexcept {
+            static_assert(internal::support_reference<U, Tag>::value,
                           "Memory do not support reference");
-            return *static_cast<dereference_type*>(ptr_);
+            return ptr;
         }
 
-        // Indexing operator
-        dereference_type& operator[](std::size_t index) const {
-            static_assert(internal::support_reference<T, Tag>::value,
+        template <typename U = T>
+        std::enable_if_t<!std::is_void_v<U>, U>& operator[](std::size_t index) const noexcept {
+            static_assert(internal::support_reference<U, Tag>::value,
                           "Memory do not support reference");
-            return static_cast<dereference_type*>(ptr_)[index];
+            return ptr[index];
         }
 
-        // Arithmetic operations
-        strong_pointer operator+(std::ptrdiff_t offset) const {
-            return strong_pointer(ptr_ + offset);
+        // **Pointer Arithmetic** //
+        strong_pointer operator+(std::ptrdiff_t n) const noexcept {
+            return strong_pointer(ptr + n);
         }
 
-        strong_pointer& operator+=(std::ptrdiff_t offset) {
-            ptr_ += offset;
+        strong_pointer operator-(std::ptrdiff_t n) const noexcept {
+            return strong_pointer(ptr - n);
+        }
+
+        strong_pointer& operator+=(std::ptrdiff_t n) noexcept {
+            ptr += n;
             return *this;
         }
 
-        strong_pointer operator-(std::ptrdiff_t offset) const {
-            return strong_pointer(ptr_ - offset);
-        }
-
-        strong_pointer& operator-=(std::ptrdiff_t offset) {
-            ptr_ -= offset;
+        strong_pointer& operator-=(std::ptrdiff_t n) noexcept {
+            ptr -= n;
             return *this;
         }
 
-        std::ptrdiff_t operator-(const strong_pointer& other) const { return ptr_ - other.ptr_; }
+        strong_pointer& operator++() noexcept {
+            ++ptr;
+            return *this;
+        }
 
-        // Comparison operators
-        bool operator==(const std::nullptr_t& other) const { return ptr_ == other; }
-        bool operator!=(const std::nullptr_t& other) const { return !(*this == other); }
+        strong_pointer operator++(int) noexcept {
+            strong_pointer temp(*this);
+            ++(*this);
+            return temp;
+        }
 
-        bool operator==(const strong_pointer& other) const { return ptr_ == other.ptr_; }
+        strong_pointer& operator--() noexcept {
+            --ptr;
+            return *this;
+        }
 
-        bool operator!=(const strong_pointer& other) const { return !(*this == other); }
+        strong_pointer operator--(int) noexcept {
+            strong_pointer temp(*this);
+            --(*this);
+            return temp;
+        }
 
-        bool operator<(const strong_pointer& other) const { return ptr_ < other.ptr_; }
+        std::ptrdiff_t operator-(const strong_pointer& other) const noexcept {
+            return ptr - other.ptr;
+        }
 
-        bool operator<=(const strong_pointer& other) const { return !(*this > other); }
+        // **Comparison Operators** //
+        bool operator==(const strong_pointer& other) const noexcept { return ptr == other.get(); }
+        bool operator!=(const strong_pointer& other) const noexcept { return ptr != other.get(); }
+        bool operator>(const strong_pointer& other) const noexcept { return ptr > other.get(); }
+        bool operator<(const strong_pointer& other) const noexcept { return ptr < other.get(); }
+        bool operator>=(const strong_pointer& other) const noexcept { return ptr >= other.get(); }
+        bool operator<=(const strong_pointer& other) const noexcept { return ptr <= other.get(); }
+        bool operator==(std::nullptr_t) const noexcept { return ptr == nullptr; }
+        bool operator!=(std::nullptr_t) const noexcept { return ptr != nullptr; }
 
-        bool operator>(const strong_pointer& other) const { return other < *this; }
+        // **Assignment** //
+        strong_pointer& operator=(const strong_pointer& other) noexcept {
+            ptr = other.get();
+            return *this;
+        }
 
-        bool operator>=(const strong_pointer& other) const { return !(*this < other); }
+        strong_pointer& operator=(T* p) noexcept {
+            ptr = p;
+            return *this;
+        }
+
+        strong_pointer& operator=(std::nullptr_t) noexcept {
+            ptr = nullptr;
+            return *this;
+        }
+
+        // **Miscellaneous**
+        explicit operator bool() const noexcept { return ptr != nullptr; }
 
     private:
-        T* ptr_;
+        T* ptr;  // The underlying raw pointer
     };
 
     using int_hp  = strong_pointer<int, MemoryTag::ENUM_HOST>;
     using void_hp = strong_pointer<void, MemoryTag::ENUM_HOST>;
 };  // namespace MT
+
+namespace std {
+    // TODO: fix reference for void and add const specialization, maybe move into class
+    template <typename T, typename Tag> struct iterator_traits<MT::strong_pointer<T, Tag>> {
+        using difference_type   = typename iterator_traits<T*>::difference_type;
+        using value_type        = typename iterator_traits<T*>::value_type;
+        using pointer           = typename iterator_traits<T*>::pointer;
+        using reference         = typename iterator_traits<T*>::reference;
+        using iterator_category = typename iterator_traits<T*>::iterator_category;
+    };
+}  // namespace std
 
 
 #endif  // STRONG_POINTER_H

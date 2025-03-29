@@ -23,7 +23,7 @@ TEST(StrongPointerTest, BasicFunctionality) {
 // Test arithmetic operations
 TEST(StrongPointerTest, VoidPointer) {
     int_hp a;
-    void*  p = a.get();
+    void  *p = a.get();
 
     void_hp b(p);
     void_hp c = a;
@@ -103,4 +103,70 @@ TEST(StrongPointerTest, TypeSafety) {
     // Device memory do not support reference
     // *b = 0;
     // *a = *b;
+}
+
+
+struct TagBase {};
+struct TagA : TagBase {};
+struct TagB : TagBase {};
+struct Base {
+    int x;
+};
+struct Derived : Base {
+    int y;
+};
+
+// Test new
+TEST(StrongPointerTest, MoreTestCases) {
+    // Test non-void case (T = int)
+    int                       x = 42;
+    strong_pointer<int, TagA> pa(&x);
+    assert(*pa == 42);  // Dereference works
+    pa = pa + 1;
+    assert(pa.get() == &x + 1);  // Arithmetic works
+
+    // Test void case
+    strong_pointer<void, TagA> pv(static_cast<void *>(&x));
+    assert(pv.get() == static_cast<void *>(&x));
+    pv = pa - 1;  // any typed pointer can be assigned to strong void pointer with the same tag
+    pv = pv + 1;
+    assert(reinterpret_cast<char *>(pv.get()) == reinterpret_cast<char *>(&x) + 1);
+    // Note: *pv would not compile, which is correct behavior
+
+    // Test with standard algorithm (non-void)
+    int                       src[3]  = {1, 2, 3};
+    int                       dest[3] = {0, 0, 0};
+    strong_pointer<int, TagA> src_begin(src);
+    strong_pointer<int, TagA> src_end(src + 3);
+    strong_pointer<int, TagA> dest_begin(dest);
+    std::copy(src_begin, src_end, dest_begin);
+    assert(dest[0] == 1 && dest[1] == 2 && dest[2] == 3);
+
+    // Test tag safety (should not compile if uncommented)
+    strong_pointer<int, TagB> pb(&x);
+    // pa = pb;  // Error: different tags
+    // assert(pa == pb);  // Error: different tags
+
+    // Test inheritance
+    Derived                       d;
+    Base                         *_x = &d;
+    Derived                      *_y = static_cast<Derived *>(_x);
+    strong_pointer<Derived, TagA> pd(&d);
+    strong_pointer<Base, TagA>    pbb = pd;  // OK: same tag, convertible types
+    assert(pbb->x == d.x);
+    pd = static_cast<strong_pointer<Derived, TagA>>(pbb);
+
+    // Test null pointer operations
+    strong_pointer<int, TagA> null_ptr;
+    assert(!null_ptr);            // operator bool
+    assert(null_ptr == nullptr);  // Comparison with nullptr_t
+    // assert(null_ptr != &x);  // Comparison with non-null
+    null_ptr = nullptr;  // Assignment from nullptr_t
+    assert(null_ptr.get() == nullptr);
+
+    strong_pointer<int, TagA> non_null(&x);
+    assert(non_null != nullptr);  // Comparison with nullptr_t
+    // assert(non_null == &x);
+    non_null = nullptr;  // Assignment from nullptr_t
+    assert(non_null == nullptr);
 }

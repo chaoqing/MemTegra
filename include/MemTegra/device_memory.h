@@ -53,7 +53,7 @@ namespace MT {
     public:
         memset(internal::cudaStream_t stream = nullptr) : stream_(stream) {}
         template <typename T, typename Tag>
-        strong_pointer<T, Tag> operator()(strong_pointer<T, Tag>& ptr, int ch,
+        strong_pointer<T, Tag> operator()(const strong_pointer<T, Tag>& ptr, int ch,
                                           std::size_t count) const {
             if (!ptr) {
                 throw std::runtime_error("Null strong pointer.");
@@ -63,7 +63,7 @@ namespace MT {
         }
 
         template <typename T> strong_pointer<T, MemoryTag::ENUM_DEVICE> operator()(
-            strong_pointer<T, MemoryTag::ENUM_DEVICE>& ptr, int ch, std::size_t count) const {
+            const strong_pointer<T, MemoryTag::ENUM_DEVICE>& ptr, int ch, std::size_t count) const {
             if (!ptr) {
                 throw std::runtime_error("Null strong pointer.");
             }
@@ -80,7 +80,7 @@ namespace MT {
     public:
         memcpy(internal::cudaStream_t stream = nullptr) : stream_(stream) {}
         template <typename T, typename U, typename DestTag, typename SrcTag>
-        strong_pointer<T, DestTag> operator()(strong_pointer<T, DestTag>&      dest,
+        strong_pointer<T, DestTag> operator()(const strong_pointer<T, DestTag>& dest,
                                               const strong_pointer<U, SrcTag>& src, size_t n) {
             if (!src) {
                 throw std::runtime_error("Source strong pointer is null.");
