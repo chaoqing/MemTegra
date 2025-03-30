@@ -8,7 +8,7 @@ using namespace MT;
 
 class MemTegraTest : public ::testing::Test {
 protected:
-    RawAllocator<MemoryTag::ENUM_ALIGNED_64> memTegra;
+    RawAllocator<MemoryTag::host_aligned_64> memTegra;
 };
 
 TEST_F(MemTegraTest, AllocateAlignedMemory) {
@@ -35,7 +35,7 @@ TEST_F(MemTegraTest, FreeNullPointer) { EXPECT_NO_THROW(memTegra.free(nullptr));
 
 
 TEST_F(MemTegraTest, MemTegraAllocator) {
-    std::vector<int, MemTegraAllocator<int, MemoryTag::ENUM_HOST>> vec;
+    std::vector<int, MemTegraAllocator<int, MemoryTag::host>> vec;
 
     vec.push_back(10);
     vec.push_back(20);

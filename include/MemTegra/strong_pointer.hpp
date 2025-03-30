@@ -8,14 +8,9 @@
 #include "./memory_tags.h"
 
 namespace MT {
-    namespace internal {
-        template <typename T, typename Tag> struct support_reference {
-            constexpr static bool value = true;
-        };
-        template <typename Tag> struct support_reference<void, Tag> {
-            constexpr static bool value = false;
-        };
-    };  // namespace internal
+    template <typename T> struct strong_pointer_traits {
+        constexpr static bool support_reference = true;
+    };
 
     template <typename T, typename Tag> class strong_pointer {
         using dereference_type = typename std::conditional_t<std::is_void_v<T>, char, T>&;
@@ -35,12 +30,16 @@ namespace MT {
         /*explicit*/ strong_pointer(T* p) noexcept : ptr(p) {}
 
         // Conversion constructor from another strong_pointer with the same tag
-        template <typename U = T, typename = std::enable_if_t<std::is_convertible_v<U*, T*>>>
-        /*explicit*/ strong_pointer(const strong_pointer<U, Tag>& other) noexcept
+        template <typename U = T, typename Tag2 = Tag,
+                  typename = std::enable_if_t<
+                      std::is_convertible_v<U*, T*> && std::is_convertible_v<Tag2*, Tag*>>>
+        /*explicit*/ strong_pointer(const strong_pointer<U, Tag2>& other) noexcept
             : ptr(other.get()) {}
 
-        template <typename U = T, typename = std::enable_if_t<std::is_convertible_v<U*, T*>>>
-        /*explicit*/ strong_pointer(strong_pointer<U, Tag>&& other) noexcept : ptr(other.get()) {}
+        template <typename U = T, typename Tag2 = Tag,
+                  typename = std::enable_if_t<
+                      std::is_convertible_v<U*, T*> && std::is_convertible_v<Tag2*, Tag*>>>
+        /*explicit*/ strong_pointer(strong_pointer<U, Tag2>&& other) noexcept : ptr(other.get()) {}
 
         // convertible to another strong_pointer with the same tag but must be explicit
         template <typename U = T, typename = std::enable_if_t<!std::is_convertible_v<T*, U*>>>
@@ -53,21 +52,21 @@ namespace MT {
 
         template <typename U = T>
         std::enable_if_t<!std::is_void_v<U>, U>& operator*() const noexcept {
-            static_assert(internal::support_reference<U, Tag>::value,
+            static_assert(strong_pointer_traits<strong_pointer<U, Tag>>::support_reference,
                           "Memory do not support reference");
             return *ptr;
         }
 
         template <typename U = T>
         std::enable_if_t<!std::is_void_v<U>, U>* operator->() const noexcept {
-            static_assert(internal::support_reference<U, Tag>::value,
+            static_assert(strong_pointer_traits<strong_pointer<U, Tag>>::support_reference,
                           "Memory do not support reference");
             return ptr;
         }
 
         template <typename U = T>
         std::enable_if_t<!std::is_void_v<U>, U>& operator[](std::size_t index) const noexcept {
-            static_assert(internal::support_reference<U, Tag>::value,
+            static_assert(strong_pointer_traits<strong_pointer<U, Tag>>::support_reference,
                           "Memory do not support reference");
             return ptr[index];
         }
@@ -150,8 +149,14 @@ namespace MT {
         T* ptr;  // The underlying raw pointer
     };
 
-    using int_hp  = strong_pointer<int, MemoryTag::ENUM_HOST>;
-    using void_hp = strong_pointer<void, MemoryTag::ENUM_HOST>;
+    using int_hp  = strong_pointer<int, MemoryTag::host>;
+    using void_hp = strong_pointer<void, MemoryTag::host>;
+
+    // This specialization actually do not needed for strong_pointer
+    template <typename Tag> struct strong_pointer_traits<strong_pointer<void, Tag>> {
+        constexpr static bool support_reference = false;
+    };
+
 };  // namespace MT
 
 namespace std {

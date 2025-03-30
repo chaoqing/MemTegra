@@ -3,7 +3,7 @@
 #include "MemTegra/MemTegra.h"
 
 int main() {
-    MT::RawAllocator<MT::MemoryTag::ENUM_ALIGNED_64> memTegra;
+    MT::RawAllocator<MT::MemoryTag::host_aligned_64> memTegra;
 
     // Allocate aligned memory
     void *ptr = memTegra.malloc(128);

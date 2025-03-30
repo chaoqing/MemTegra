@@ -86,8 +86,8 @@ TEST(StrongPointerTest, TypeSafety) {
     int deviceArray[10];
 
     int_hp a(hostArray);
-    using int_hp_64  = strong_pointer<int, MemoryTag::ENUM_ALIGNED_64>;
-    using void_hp_64 = strong_pointer<void, MemoryTag::ENUM_ALIGNED_64>;
+    using int_hp_64  = strong_pointer<int, MemoryTag::host_aligned_64>;
+    using void_hp_64 = strong_pointer<void, MemoryTag::host_aligned_64>;
     int_hp_64 b(deviceArray);
 
     // Valid operations
@@ -100,9 +100,14 @@ TEST(StrongPointerTest, TypeSafety) {
     // Uncommenting the following lines should cause compile-time errors:
     // auto invalid = a - b;
 
-    // Device memory do not support reference
-    // *b = 0;
-    // *a = *b;
+    void_hp_64 c = b;
+    // void pointer do not support reference
+    //*c = 0;
+
+    void_hp d = b;
+    // convert from (int*, host_aligned_64) into (void*, host) allowed
+    // c = d;
+    // b = d;
 }
 
 

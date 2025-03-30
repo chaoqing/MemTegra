@@ -31,15 +31,15 @@ namespace MT {
         }
     };
 
-    // Specialization for ENUM_ALIGNED_64
-    template <> class RawAllocator<MemoryTag::ENUM_ALIGNED_64> {
+    // Specialization for host_aligned_64
+    template <size_t N> class RawAllocator<MemoryTag::host_aligned<N>> {
     public:
         static void* malloc(std::size_t size) {
             if (size == 0) {
                 throw std::invalid_argument("Size must be greater than zero.");
             }
 
-            constexpr std::size_t alignment = 64;
+            constexpr std::size_t alignment = MemoryTag::host_aligned<N>::alignment;
             void*                 ptr
                 = std::aligned_alloc(alignment, ((size + alignment - 1) / alignment) * alignment);
             if (ptr == nullptr) {
