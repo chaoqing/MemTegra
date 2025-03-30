@@ -12,6 +12,9 @@ namespace MT {
     };  // namespace MemoryTag
     template <typename T> struct strong_pointer_traits<strong_pointer<T, MemoryTag::device>> {
         constexpr static bool support_reference = false;
+        constexpr static bool is_strong_pointer = true;
+        using memory_tag                        = MemoryTag::device;
+        using value_type                        = T;
     };
 
     namespace internal {

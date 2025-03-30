@@ -10,10 +10,14 @@
 namespace MT {
     template <typename T> struct strong_pointer_traits {
         constexpr static bool support_reference = true;
+        constexpr static bool is_strong_pointer = false;
+        using memory_tag                        = void;
+        using value_type                        = void;
     };
 
     template <typename T, typename Tag> class strong_pointer {
         using dereference_type = typename std::conditional_t<std::is_void_v<T>, char, T>&;
+        static_assert(!std::is_same_v<Tag, void>, "strong_pointer memory_tag should not be void");
 
     public:
         // **Iterator Traits** //
@@ -145,6 +149,35 @@ namespace MT {
         // **Miscellaneous**
         explicit operator bool() const noexcept { return ptr != nullptr; }
 
+        template <typename U,
+                  typename = std::enable_if_t<
+                      strong_pointer_traits<U>::is_strong_pointer
+                          && std::is_same_v<Tag, typename strong_pointer_traits<U>::memory_tag>,
+                      U>>
+        U cast_static() const noexcept {
+            using UT = typename strong_pointer_traits<U>::value_type;
+            return static_cast<UT*>(ptr);
+        }
+
+        template <typename U,
+                  typename = std::enable_if_t<
+                      strong_pointer_traits<U>::is_strong_pointer
+                          && std::is_same_v<Tag, typename strong_pointer_traits<U>::memory_tag>,
+                      U>>
+        U cast_dynamic() const noexcept {
+            using UT = typename strong_pointer_traits<U>::value_type;
+            return dynamic_cast<UT*>(ptr);
+        }
+        template <typename U,
+                  typename = std::enable_if_t<
+                      strong_pointer_traits<U>::is_strong_pointer
+                          && std::is_same_v<Tag, typename strong_pointer_traits<U>::memory_tag>,
+                      U>>
+        U cast_reinterpret() const noexcept {
+            using UT = typename strong_pointer_traits<U>::value_type;
+            return reinterpret_cast<UT*>(ptr);
+        }
+
     private:
         T* ptr;  // The underlying raw pointer
     };
@@ -152,9 +185,19 @@ namespace MT {
     using int_hp  = strong_pointer<int, MemoryTag::host>;
     using void_hp = strong_pointer<void, MemoryTag::host>;
 
+    template <typename T, typename Tag> struct strong_pointer_traits<strong_pointer<T, Tag>> {
+        constexpr static bool support_reference = true;
+        constexpr static bool is_strong_pointer = true;
+        using memory_tag                        = Tag;
+        using value_type                        = T;
+    };
+
     // This specialization actually do not needed for strong_pointer
     template <typename Tag> struct strong_pointer_traits<strong_pointer<void, Tag>> {
         constexpr static bool support_reference = false;
+        constexpr static bool is_strong_pointer = true;
+        using memory_tag                        = Tag;
+        using value_type                        = void;
     };
 
 };  // namespace MT
