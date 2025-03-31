@@ -64,13 +64,13 @@ namespace MT {
 
     public:
         using value_type = T;
+        using pointer    = strong_pointer<T, Tag>;
 
         MemTegraAllocator() noexcept = default;
 
-        template <typename U, typename Tag2>
-        MemTegraAllocator(const MemTegraAllocator<U, Tag2>&) noexcept {}
+        template <typename U> MemTegraAllocator(const MemTegraAllocator<U, Tag>&) noexcept {}
 
-        T* allocate(std::size_t n) {
+        pointer allocate(std::size_t n) {
             if (n == 0) {
                 return nullptr;
             }
@@ -80,11 +80,11 @@ namespace MT {
             return static_cast<T*>(raw_allocator::malloc(n * sizeof(T)));
         }
 
-        void deallocate(T* p, std::size_t) noexcept { raw_allocator::free(p); }
+        void deallocate(const pointer& p, std::size_t) { raw_allocator::free(p.get()); }
 
         template <typename U, typename Tag2>
         bool operator==(const MemTegraAllocator<U, Tag2>&) const noexcept {
-            return std::is_same<Tag, Tag2>::value;
+            return std::is_same_v<Tag, Tag2>;
         }
 
         template <typename U, typename Tag2>

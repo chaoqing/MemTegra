@@ -53,25 +53,22 @@ TEST_F(DeviceMemTest, MemoryOps) {
     int_hp           host_p{static_cast<int *>(RawAllocator<MemoryTag::host>::malloc(bytes))};
     void_dp          device_p{static_cast<int *>(memTegra.malloc(bytes))};
 
-    auto context = MT::cuda_context{};
+    auto context = MT::cuda::context{};
 
-    context.memset(host_p, 0, bytes);
-    std::copy(host_p, host_p + N, std::ostream_iterator<int>(std::cout, " "));
-    std::cout << std::endl;
-
-    // Set first half of device_p to all 1
     context.memset(device_p, 1, bytes / 2);
 
     // Copy first half of device_p into later half of host_p
-    context.memcpy(host_p + bytes / 2, device_p, bytes / 2);
+    context.memcpy(host_p + N / 2, device_p, bytes / 2);
 
     // Print all values in host_p
-    std::copy(host_p, host_p + N, std::ostream_iterator<int>(std::cout, " "));
-    std::cout << std::endl;
+    // std::copy(host_p, host_p + N, std::ostream_iterator<int>(std::cout, " "));
+    // std::cout << std::endl;
+    // Error because device memory do not support reference
+    // std::copy_n(static_cast<int_dp>(device_p), N, std::ostream_iterator<int>(std::cout, " "));
 
     // Verify values in host_p
     for (size_t i = N / 2; i < N; ++i) {
-        // EXPECT_EQ(host_p[i], 0x01010101);  // Each byte is set to 1
+        EXPECT_EQ(host_p[i], 0x01010101);  // Each byte is set to 1
     }
 
     // Generate random numbers in first half of host_p
@@ -79,6 +76,10 @@ TEST_F(DeviceMemTest, MemoryOps) {
 
     // Copy first half of host_p into later half of device_p
     context.memcpy(static_cast<int_dp>(device_p) + N / 2, host_p, bytes / 2);
+    context.memcpy(host_p + N / 2, static_cast<int_dp>(device_p) + N / 2, bytes / 2);
+    for (size_t i = N; i < N / 2; ++i) {
+        EXPECT_EQ(host_p[i], host_p[i + N / 2]);  // Each byte is set to 1
+    }
 
     memTegra.free(device_p.get());
     RawAllocator<MemoryTag::host>::free(host_p.get());

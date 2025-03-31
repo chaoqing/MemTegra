@@ -33,6 +33,13 @@ TEST_F(StrongPointerTest, BasicFunctionality) {
 
     // Test indexing
     EXPECT_EQ(a[2], 2);
+
+    // Test I/O
+    std::stringstream ss;
+    ss << a;
+    std::cout << "pointer of a:" << ss.str() << ", a2: " << a2 << std::endl;
+    ss >> std::hex >> a2;
+    EXPECT_EQ(a, a2);
 }
 
 // Test arithmetic operations
@@ -74,6 +81,15 @@ TEST_F(StrongPointerTest, ComparisonOperations) {
     int    hostArray[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     int_hp a(hostArray);
     int_hp b(hostArray + 1);
+    void*  c = hostArray;
+
+    // Test equality with raw pointer
+    EXPECT_TRUE(a == hostArray);
+    EXPECT_TRUE(hostArray == a);
+    EXPECT_TRUE(c == hostArray);
+    EXPECT_TRUE(hostArray == c);
+    EXPECT_TRUE(c == a);
+    EXPECT_TRUE(a == c);
 
     // Test equality
     EXPECT_FALSE(a == b);
@@ -199,14 +215,17 @@ protected:
         int derived_value = 84;
     };
 
-    // using int_p = int*;
-    // using const_int_p = const int*;
-    // using void_p = void*;
-    // using char_p = char*;
-    // using float_p = float*;
-    // using Base_p = Base*;
-    // using Derived_p = Derived*;
-    // using func_p = int (*)(int);
+//#define RAW_POINTER_TESTS
+#ifdef RAW_POINTER_TESTS
+    using int_p       = int*;
+    using const_int_p = const int*;
+    using void_p      = void*;
+    using char_p      = char*;
+    using float_p     = float*;
+    using Base_p      = Base*;
+    using Derived_p   = Derived*;
+    using func_p      = int (*)(int);
+#else
 
     using int_p       = strong_pointer<int, MemoryTag::host>;
     using const_int_p = strong_pointer<const int, MemoryTag::host>;
@@ -216,6 +235,7 @@ protected:
     using Base_p      = strong_pointer<Base, MemoryTag::host>;
     using Derived_p   = strong_pointer<Derived, MemoryTag::host>;
     using func_p      = int (*)(int);
+#endif
 };
 
 // 1. Basic Pointer Initialization and Dereferencing
@@ -235,6 +255,9 @@ TEST_F(PointerTest, VoidPointerInteraction) {
 
     int_p back_ptr = static_cast<int_p>(vptr);
     EXPECT_EQ(*back_ptr, 10);
+
+    EXPECT_EQ(vptr, iptr);
+    EXPECT_EQ(iptr, vptr);
 
     // Illegal: Cannot dereference void_p
     // *vptr; // Compile error: void_p has no type information
@@ -264,18 +287,20 @@ TEST_F(PointerTest, BaseDerivedCasting) {
     Derived_p dptr_static = static_cast<Derived_p>(bptr);
     EXPECT_EQ(dptr_static->derived_value, 84);
 
-    //// Downcast with dynamic_cast (runtime check)
-    // Derived_p dptr_dynamic = dynamic_cast<Derived_p>(bptr);
-    // EXPECT_NE(dptr_dynamic, nullptr);
-    // EXPECT_EQ(dptr_dynamic->derived_value, 84);
+#ifdef RAW_POINTER_TESTS
+    // Downcast with dynamic_cast (runtime check)
+    Derived_p dptr_dynamic = dynamic_cast<Derived_p>(bptr);
+    EXPECT_NE(dptr_dynamic, nullptr);
+    EXPECT_EQ(dptr_dynamic->derived_value, 84);
 
-    //// dynamic_cast failure case
-    // Base                  b;
-    // Base_p                 bptr2     = &b;
-    // Derived_p dptr_fail = dynamic_cast<Derived_p>(bptr2);
-    // EXPECT_EQ(dptr_fail, nullptr);
+    // dynamic_cast failure case
+    Base      b;
+    Base_p    bptr2     = &b;
+    Derived_p dptr_fail = dynamic_cast<Derived_p>(bptr2);
+    EXPECT_EQ(dptr_fail, nullptr);
 
-    // strong_pointer have different cast call
+#else  // strong_pointer have different cast call
+
     // Downcast with dynamic_cast (runtime check)
     Derived_p dptr_dynamic = bptr.cast_dynamic<Derived_p>();
     EXPECT_NE(dptr_dynamic, nullptr);
@@ -286,6 +311,7 @@ TEST_F(PointerTest, BaseDerivedCasting) {
     Base_p    bptr2     = &b;
     Derived_p dptr_fail = bptr2.cast_dynamic<Derived_p>();
     EXPECT_EQ(dptr_fail, nullptr);
+#endif
 }
 
 // 5. Pointer Comparisons
@@ -344,6 +370,13 @@ TEST_F(PointerTest, ConstCorrectness) {
     EXPECT_EQ(*cptr, 10);
     // *cptr = 20; // Illegal: Cannot modify through const pointer
 
+#ifdef RAW_POINTER_TESTS
+    *const_cast<int*>(cptr) = 20;
+#else
+    *cptr.cast_const<int_p>() = 20;
+#endif
+    EXPECT_EQ(*cptr, 20);
+
     int_p const ptr_const = &value;  // Const pointer
     *ptr_const            = 15;
     EXPECT_EQ(value, 15);
@@ -394,22 +427,24 @@ TEST_F(PointerTest, ReinterpretCast) {
     int   x    = 10;
     int_p iptr = &x;
 
-    // float_p fptr = reinterpret_cast<float_p>(iptr);
+#ifdef RAW_POINTER_TESTS
+    float_p fptr = reinterpret_cast<float_p>(iptr);
     //  Dereferencing fptr would be UB due to type mismatch
-    // EXPECT_EQ(fptr, reinterpret_cast<float_p>(iptr));  // Same address
+    EXPECT_EQ(fptr, reinterpret_cast<float_p>(iptr));  // Same address
 
     // Illegal: Misaligned access (UB if dereferenced)
-    // char_p cptr = reinterpret_cast<char_p>(&x);
+    char_p cptr = reinterpret_cast<char_p>(&x);
     // int_p misaligned = reinterpret_cast<int_p>(cptr + 1); // UB if used
 
-    // strong_pointer have different cast call
-    float_p fptr = iptr.cast_reinterpret<float_p>();
+#else  // strong_pointer have different cast call
+    float_p fptr              = iptr.cast_reinterpret<float_p>();
     // Dereferencing fptr would be UB due to type mismatch
     EXPECT_EQ(fptr, iptr.cast_reinterpret<float_p>());  // Same address
                                                         //
     // Illegal: Misaligned access (UB if dereferenced)
     char_p cptr = iptr.cast_reinterpret<char_p>();
     // int_p misaligned = (cptr + 1).cast_reinterpret<int_p>(); // UB if used
+#endif
 }
 
 // 12. Undefined Behavior Cases (Commented Out)

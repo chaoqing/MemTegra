@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstring>
+#include <iostream>
 #include <type_traits>
 
 #include "./memory_tags.h"
@@ -121,6 +122,14 @@ namespace MT {
         }
 
         // **Comparison Operators** //
+        template <typename U = T, typename = std::enable_if_t<!std::is_void_v<U>, bool>>
+        bool operator==(const strong_pointer<void, Tag>& other) const noexcept {
+            return ptr == other.get();
+        }
+        template <typename U = T, typename = std::enable_if_t<!std::is_void_v<U>, bool>>
+        bool operator!=(const strong_pointer<void, Tag>& other) const noexcept {
+            return ptr != other.get();
+        }
         bool operator==(const strong_pointer& other) const noexcept { return ptr == other.get(); }
         bool operator!=(const strong_pointer& other) const noexcept { return ptr != other.get(); }
         bool operator>(const strong_pointer& other) const noexcept { return ptr > other.get(); }
@@ -149,6 +158,16 @@ namespace MT {
         // **Miscellaneous**
         explicit operator bool() const noexcept { return ptr != nullptr; }
 
+
+        template <typename U,
+                  typename = std::enable_if_t<
+                      strong_pointer_traits<U>::is_strong_pointer
+                          && std::is_same_v<Tag, typename strong_pointer_traits<U>::memory_tag>,
+                      U>>
+        U cast_const() const noexcept {
+            using UT = typename strong_pointer_traits<U>::value_type;
+            return const_cast<UT*>(ptr);
+        }
         template <typename U,
                   typename = std::enable_if_t<
                       strong_pointer_traits<U>::is_strong_pointer
@@ -182,8 +201,39 @@ namespace MT {
         T* ptr;  // The underlying raw pointer
     };
 
-    using int_hp  = strong_pointer<int, MemoryTag::host>;
-    using void_hp = strong_pointer<void, MemoryTag::host>;
+    // equality with raw pointers
+    template <typename T, typename Tag, typename = std::enable_if_t<!std::is_same_v<T, void>>>
+    bool operator==(void* lhs, const strong_pointer<T, Tag>& ohs) noexcept {
+        return lhs == ohs.get();
+    }
+    template <typename T, typename Tag, typename = std::enable_if_t<!std::is_same_v<T, void>>>
+    bool operator!=(void* lhs, const strong_pointer<T, Tag>& ohs) noexcept {
+        return lhs != ohs.get();
+    }
+
+    template <typename T, typename Tag>
+    bool operator==(T* lhs, const strong_pointer<T, Tag>& ohs) noexcept {
+        return lhs == ohs.get();
+    }
+    template <typename T, typename Tag>
+    bool operator!=(T* lhs, const strong_pointer<T, Tag>& ohs) noexcept {
+        return lhs != ohs.get();
+    }
+
+    // I/O
+    template <typename T, typename Tag>
+    std::ostream& operator<<(std::ostream& os, const strong_pointer<T, Tag>& sp) {
+        os << sp.get();
+        return os;
+    }
+
+    template <typename T, typename Tag>
+    std::istream& operator>>(std::istream& is, strong_pointer<T, Tag>& sp) {
+        void* raw_ptr;
+        is >> raw_ptr;
+        sp = static_cast<T*>(raw_ptr);
+        return is;
+    }
 
     template <typename T, typename Tag> struct strong_pointer_traits<strong_pointer<T, Tag>> {
         constexpr static bool support_reference = true;
@@ -199,6 +249,10 @@ namespace MT {
         using memory_tag                        = Tag;
         using value_type                        = void;
     };
+
+    // Common types
+    using int_hp  = strong_pointer<int, MemoryTag::host>;
+    using void_hp = strong_pointer<void, MemoryTag::host>;
 
 };  // namespace MT
 

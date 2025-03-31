@@ -24,11 +24,16 @@ namespace MT {
                 throw std::runtime_error("CUDA device memory allocation failed: "
                                          + std::string(cudaGetErrorString(err)));
             }
-            return ptr;
 #else
             constexpr size_t CUDA_DEFAULT_ALIGNMENT = 256;
-            return std::aligned_alloc(size, CUDA_DEFAULT_ALIGNMENT);
+            ptr = std::aligned_alloc(CUDA_DEFAULT_ALIGNMENT, (size + CUDA_DEFAULT_ALIGNMENT - 1)
+                                                                 / CUDA_DEFAULT_ALIGNMENT
+                                                                 * CUDA_DEFAULT_ALIGNMENT);
 #endif
+            if (ptr == nullptr) {
+                throw std::bad_alloc();
+            }
+            return ptr;
         }
 
         void cuda_free(void* ptr) {
@@ -45,11 +50,14 @@ namespace MT {
             }
         }
 
-        void* cuda_memset(void* dest, int ch, size_t n, cudaStream_t stream) {
+    };  // namespace internal
+
+    namespace cuda {
+        void* context::cuda_memset(void* dest, int ch, size_t n) const {
 #ifdef ENABLE_CUDA
             cudaError_t err = cudaSuccess;
-            if (stream) {
-                err = cudaMemsetAsync(dest, ch, n, static_cast<::cudaStream_t>(stream));
+            if (async_) {
+                err = cudaMemsetAsync(dest, ch, n, static_cast<::cudaStream_t>(stream_));
             } else {
                 err = cudaMemset(dest, ch, n);
             }
@@ -64,11 +72,13 @@ namespace MT {
             return dest;
         }
 
-        void* cuda_memcpy(void* dest, const void* src, size_t n, cudaMemcpyKind kind,
-                          cudaStream_t stream) {
+        void* context::cuda_memcpy(void* dest, const void* src, size_t n,
+                                   cudaMemcpyKind kind) const {
 #ifdef ENABLE_CUDA
             cudaError_t err = cudaSuccess;
 
+            static_assert(static_cast<::cudaMemcpyKind>(cudaMemcpyKind::cudaMemcpyHostToHost)
+                          == cudaMemcpyHostToHost);
             static_assert(static_cast<::cudaMemcpyKind>(cudaMemcpyKind::cudaMemcpyHostToDevice)
                           == cudaMemcpyHostToDevice);
             static_assert(static_cast<::cudaMemcpyKind>(cudaMemcpyKind::cudaMemcpyDeviceToHost)
@@ -77,8 +87,8 @@ namespace MT {
                           == cudaMemcpyDeviceToDevice);
 
             const auto _kind = static_cast<::cudaMemcpyKind>(kind);
-            if (stream) {
-                err = cudaMemcpyAsync(dest, src, n, _kind, static_cast<::cudaStream_t>(stream));
+            if (async_) {
+                err = cudaMemcpyAsync(dest, src, n, _kind, static_cast<::cudaStream_t>(stream_));
             } else {
                 err = cudaMemcpy(dest, src, n, _kind);
             }
@@ -93,6 +103,6 @@ namespace MT {
 
             return dest;
         }
+    };  // namespace cuda
 
-    };  // namespace internal
-};      // namespace MT
+};  // namespace MT
