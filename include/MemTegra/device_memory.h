@@ -1,6 +1,7 @@
 #ifndef MEMTEGRA_DEVICE_ALLOCATOR_H
 #define MEMTEGRA_DEVICE_ALLOCATOR_H
 
+#include <memory>
 #include <type_traits>
 
 #include "./MemTegra.h"
@@ -37,7 +38,33 @@ namespace MT {
 
 namespace MT {
     namespace cuda {
-        bool is_availale();
+        bool is_available();
+
+        std::pair<size_t, size_t> get_device_memory_usage();
+        std::pair<int, int>       device_get_stream_priority_range();
+
+        enum class cudaDeviceFlag {
+            ScheduleAuto         = 0x00, /**< Device flag - Automatic scheduling */
+            ScheduleSpin         = 0x01, /**< Device flag - Spin default scheduling */
+            ScheduleYield        = 0x02, /**< Device flag - Yield default scheduling */
+            ScheduleBlockingSync = 0x04, /**< Device flag - Use blocking synchronization */
+            ScheduleMask         = 0x07, /**< Device schedule flags mask */
+            MapHost              = 0x08, /**< Device flag - Support mapped pinned allocations */
+            LmemResizeToMax = 0x10, /**< Device flag - Keep local memory allocation after launch */
+            SyncMemops      = 0x80, /**< Device flag - Ensure synchronous memory operations on this
+                                       context will synchronize */
+            Mask = 0xff,            /**< Device flags mask */
+        };
+        void set_device_flags(cudaDeviceFlag flags);
+
+        enum class cudaHostRegisterFlag {
+            Default  = 0x00, /**< Default host memory registration flag */
+            Portable = 0x01, /**< Pinned memory accessible by all CUDA contexts */
+            Mapped   = 0x02, /**< Map registered memory into device space */
+            IoMemory = 0x04, /**< Memory-mapped I/O space */
+            ReadOnly = 0x08, /**< Memory-mapped read-only */
+        };
+        void host_register(void* ptr, size_t n, cudaHostRegisterFlag flags);
 
         class context {
             using cudaStream_t = void*;
@@ -49,11 +76,19 @@ namespace MT {
                 cudaMemcpyDeviceToDevice = 3,
             };
 
+
         public:
-            context() : stream_(nullptr), async_(false) {}
-            context(cudaStream_t stream) : stream_(stream), async_(true) {}
-            context(const context&) = default;
-            context(context&&)      = default;
+            static std::unique_ptr<context> new_with_priority(int priority, bool async = true);
+
+        public:
+            context(bool async = false) : stream_(nullptr), async_(async) {}
+            context(const context&) = delete;
+            context(context&&)      = delete;
+
+            ~context();
+
+            void release();
+            void synchronize();
 
             // Memory set operation for strong pointers
             template <typename T, typename Tag>
@@ -107,8 +142,8 @@ namespace MT {
             }
 
         private:
-            const cudaStream_t stream_;
-            const bool         async_;
+            cudaStream_t stream_;
+            const bool   async_;
 
             void* cuda_memset(void* dest, int ch, size_t n) const;
             void* cuda_memcpy(void* dest, const void* src, size_t n, cudaMemcpyKind kind) const;

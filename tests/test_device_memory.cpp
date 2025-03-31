@@ -53,7 +53,10 @@ TEST_F(DeviceMemTest, MemoryOps) {
     int_hp           host_p{static_cast<int *>(RawAllocator<MemoryTag::host>::malloc(bytes))};
     void_dp          device_p{static_cast<int *>(memTegra.malloc(bytes))};
 
-    auto context = MT::cuda::context{};
+    // auto context = MT::cuda::context{};
+    auto _context = MT::cuda::context::new_with_priority(
+        MT::cuda::device_get_stream_priority_range().first, false);
+    auto &context = *_context;
 
     context.memset(device_p, 1, bytes / 2);
 
@@ -80,6 +83,8 @@ TEST_F(DeviceMemTest, MemoryOps) {
     for (size_t i = N; i < N / 2; ++i) {
         EXPECT_EQ(host_p[i], host_p[i + N / 2]);  // Each byte is set to 1
     }
+
+    context.release();
 
     memTegra.free(device_p.get());
     RawAllocator<MemoryTag::host>::free(host_p.get());
